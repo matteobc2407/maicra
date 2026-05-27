@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Clásico Peruasno - Penales</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #11141a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            color: #fff;
+        }
+        #game-container {
+            position: relative;
+            width: 960px;
+            height: 540px;
+            background: #000;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* Capas de Interfaz de Usuario flotantes */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.95);
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            display: none !important;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            background: linear-gradient(45deg, #e2e8f0, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .team-selector {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .team-card {
+            width: 260px;
+            padding: 25px;
+            border-radius: 16px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 3px solid transparent;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .team-card:hover {
+            transform: translateY(-8px);
+        }
+        .team-u {
+            background: linear-gradient(135deg, #FFFDD0 0%, #fefca1 100%);
+            color: #800020;
+        }
+        .team-u:hover {
+            border-color: #800020;
+            box-shadow: 0 15px 30px rgba(128, 0, 32, 0.4);
+        }
+        .team-al {
+            background: linear-gradient(135deg, #001A4E 0%, #002d84 100%);
+            color: #ffffff;
+        }
+        .team-al:hover {
+            border-color: #ffffff;
+            box-shadow: 0 15px 30px rgba(0, 26, 78, 0.6);
+        }
+        .team-card .badge {
+            font-size: 4.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            line-height: 1;
+        }
+        .team-card .name {
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            color: white;
+            padding: 14px 35px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(34, 197, 94, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.6);
+        }
+        #hud-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .score-board {
+            display: flex;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(5px);
+        }
+        .team-score-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 140px;
+        }
+        .team-score-name {
+            font-weight: 900;
+            font-size: 1rem;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+        .dots-container {
+            display: flex;
+            gap: 5px;
+        }
+        .dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #334155;
+            border: 1px solid #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        .dot.gol {
+            background: #22c55e;
+            border-color: #16a34a;
+            color: #fff;
+        }
+        .dot.fallo {
+            background: #ef4444;
+            border-color: #dc2626;
+            color: #fff;
+        }
+        .vs-divider {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: #64748b;
+            margin: 0 15px;
+            padding: 4px 8px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+        }
+        #center-message {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 30px;
+            border-radius: 30px;
+            font-weight: 800;
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+            border: 2px solid #3b82f6;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 4;
+            pointer-events: none;
+            animation: pulse 1.5s infinite alternate;
+        }
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); }
+            100% { transform: translateX(-50%) scale(1.04); box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4); }
+        }
+        #banner-announcement {
+            position: absolute;
+            top: 45%;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 4rem;
+            font-weight: 900;
+            text-shadow: 0 5px 15px rgba(0,0,0,0.8), 0 0 20px currentColor;
+            z-index: 6;
+            pointer-events: none;
+            text-transform: uppercase;
+            transform: translateY(-50%) scale(0.5);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #banner-announcement.show {
+            transform: translateY(-50%) scale(1);
+            opacity: 1;
+        }
+        #instructions-bar {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15,23,42,0.9);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255,255,255,0.1);
+            pointer-events: none;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- HUD Superior flotante permanente en juego -->
+        <div id="hud-overlay" class="hidden">
+            <div class="score-board">
+                <div class="team-score-info">
+                    <span id="hud-team-a-name" class="team-score-name" style="color: #FFFDD0;">UNIVERSITARIO</span>
+                    <div id="tanda-team-a" class="dots-container"></div>
+                </div>
+                <div class="vs-divider">VS</div>
+                <div class="team-score-info">
+                    <span id="hud-team-b-name" class="team-score-name" style="color: #ffffff;">ALIANZA LIMA</span>
+                    <div id="tanda-team-b" class="dots-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="center-message" class="hidden">Tu turno de patear</div>
+        <div id="banner-announcement" class="hidden">¡GOL!</div>
+        <div id="instructions-bar" class="hidden">Haz CLICK o presiona ESPACIO para fijar la mira</div>
+
+        <!-- Pantalla de Selección de Equipo -->
+        <div id="menu-screen" class="screen">
+            <h1>Super Clásico Peruano</h1>
+            <p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px;">Selecciona tu equipo para iniciar la tanda de penales</p>
+            <div class="team-selector">
+                <div class="team-card team-u" onclick="selectTeam('U')">
+                    <div class="badge">U</div>
+                    <div class="name">UNIVERSITARIO</div>
+                </div>
+                <div class="team-card team-al" onclick="selectTeam('AL')">
+                    <div class="badge">AL</div>
+                    <div class="name">ALIANZA RISA</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla Final -->
+        <div id="gameover-screen" class="screen hidden">
+            <h1 id="winner-title" style="font-size: 3.5rem;">¡CAMPEÓN!</h1>
+            <p id="winner-subtitle" style="font-size: 1.5rem; margin-bottom: 30px; font-weight: 700;"></p>
+            <button class="btn" onclick="resetGame()">Repetir Clásico</button>
+        </div>
+
+        <!-- Lienzo de renderizado principal -->
+        <canvas id="gameCanvas" width="960" height="540"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Estados del Juego
+        const STATES = {
+            MENU: 'MENU',
+            SETUP_PATEAR: 'SETUP_PATEAR', // Preparando tiro del usuario
+            MIRA_X: 'MIRA_X',             // Moviendo mira horizontalmente
+            MIRA_Y: 'MIRA_Y',             // Moviendo mira verticalmente
+            BARRA_POTENCIA: 'BARRA_POTENCIA', // Cargando fuerza
+            BALON_EN_VUELO: 'BALON_EN_VUELO', // Pelota viajando (Tanto usuario como IA)
+            SETUP_ARQUERO: 'SETUP_ARQUERO', // Preparando defensa del usuario
+            IA_PREPARANDO: 'IA_PREPARANDO', // Delay dramático antes de que patee la IA
+            CELEBRACION: 'CELEBRACION',     // Delay visual tras un gol/parada
+            GAMEOVER: 'GAMEOVER'
+        };
+
+        let currentState = STATES.MENU;
+
+        // Gestión de equipos y torneo
+        let userTeam = 'U'; // 'U' o 'AL'
+        let rivalTeam = 'AL';
+        let currentRound = 1; // Ronda de la tanda
+        let isUserTurnToKick = true; // El usuario empieza pateando
+
+        // Historiales de tanda (arrays de strings: 'G' = gol, 'F' = fallo, 'E' = vacío)
+        let scoreTrack = {
+            U: ['E','E','E','E','E'],
+            AL: ['E','E','E','E','E']
+        };
+
+        // Estructuras de Colores Oficiales
+        const TEAM_COLORS = {
+            'U': { primary: '#FFFDD0', secondary: '#800020', text: '#800020', label: 'UNIVERSITARIO' },
+            'AL': { primary: '#001A4E', secondary: '#ffffff', text: '#ffffff', label: 'ALIANZA LIMA' }
+        };
+
+        // Dimensiones Físicas Proyectadas del Arco de Fútbol en Canvas
+        // El arco en perspectiva frontal "Pateador"
+        const GOAL = {
+            left: 230,
+            right: 730,
+            top: 130,
+            bottom: 380,
+            width: 500,
+            height: 250,
+            postWidth: 14
+        };
+
+        // Variables de Control de la Mira de Apuntado
+        let targetCrosshair = { x: 480, y: 255 };
+        let crosshairSpeedX = 6;
+        let crosshairSpeedY = 5;
+        let crosshairDirX = 1;
+        let crosshairDirY = 1;
+        let crosshairRange = { minX: 180, maxX: 780, minY: 90, maxY: 420 }; // Permite fallar afuera
+
+        // Variables de la Barra de Potencia
+        let powerValue = 0;
+        let powerSpeed = 0.05;
+        let powerDir = 1;
+
+        // Entidades del Juego (Balón, Arquero)
+        let ball = {
+            x: 480, y: 460, z: 0, // z representa profundidad analógica (0 = cerca de cámara, 1 = línea de gol)
+            startX: 480, startY: 460,
+            targetX: 480, targetY: 255,
+            radius: 26,
+            rotation: 0,
+            speedZ: 0.022, // velocidad de profundidad constante
+            arcHeight: 60, // Factor parabólico
+            active: false
+        };
+
+        let goalkeeper = {
+            x: 480, y: 280,
+            targetX: 480, targetY: 280,
+            width: 80, height: 110,
+            state: 'IDLE', // 'IDLE', 'DIVING'
+            diveProgress: 0,
+            startX: 480, startY: 280,
+            targetDiveX: 480, targetDiveY: 280,
+            gloveLeft: {x: 440, y: 240},
+            gloveRight: {x: 520, y: 240}
+        };
+
+        // Posición del puntero (ratón o touch) para controlar al arquero
+        let mouseX = 480;
+        let mouseY = 280;
+
+        // IA Alerta Pre-Tiro
+        let iaShotIndicator = { x: 0, y: 0, timer: 0, visible: false };
+
+        // Sistema de Partículas de Espectadores (Hinchada viva)
+        let spectators = [];
+        function initSpectators() {
+            spectators = [];
+            // Generar asientos en gradas superiores
+            for (let y = 30; y < 140; y += 8) {
+                let density = (y < 80) ? 8 : 6;
+                for (let x = 10; x < canvas.width; x += density) {
+                    // Distribuir hinchada aleatoriamente según sector
+                    let isLeft = x < canvas.width / 2;
+                    spectators.push({
+                        x: x + (Math.random() * 2 - 1),
+                        y: y + (Math.random() * 2 - 1),
+                        baseY: y,
+                        offsetPhase: Math.random() * Math.PI * 2,
+                        // El color depende de qué tribuna sea (U o Alianza)
+                        teamSide: isLeft ? 'LEFT' : 'RIGHT'
+                    });
+                }
+            }
+        }
+
+        // Configuración y arranque del juego desde UI
+        function selectTeam(team) {
+            userTeam = team;
+            rivalTeam = (team === 'U') ? 'AL' : 'U';
+            
+            // Personalizar HUD
+            document.getElementById('hud-team-a-name').innerText = TEAM_COLORS[userTeam].label;
+            document.getElementById('hud-team-a-name').style.color = TEAM_COLORS[userTeam].primary;
+            document.getElementById('hud-team-b-name').innerText = TEAM_COLORS[rivalTeam].label;
+            document.getElementById('hud-team-b-name').style.color = TEAM_COLORS[rivalTeam].primary;
+
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('hud-overlay').classList.remove('hidden');
+            document.getElementById('center-message').classList.remove('hidden');
+            document.getElementById('instructions-bar').classList.remove('hidden');
+
+            initSpectators();
+            startPenaltySession();
+        }
+
+        function startPenaltySession() {
+            currentRound = 1;
+            scoreTrack.U = ['E','E','E','E','E'];
+            scoreTrack.AL = ['E','E','E','E','E'];
+            isUserTurnToKick = true; // Inicia pateando el usuario
+            buildTandaUI();
+            changeState(STATES.SETUP_PATEAR);
+        }
+
+        function buildTandaUI() {
+            const containerA = document.getElementById('tanda-team-a');
+            const containerB = document.getElementById('tanda-team-b');
+            containerA.innerHTML = '';
+            containerB.innerHTML = '';
+
+            let trackA = scoreTrack[userTeam];
+            let trackB = scoreTrack[rivalTeam];
+
+            for (let i = 0; i < Math.max(5, trackA.length); i++) {
+                containerA.appendChild(createDot(trackA[i] || 'E'));
+            }
+            for (let i = 0; i < Math.max(5, trackB.length); i++) {
+                containerB.appendChild(createDot(trackB[i] || 'E'));
+            }
+        }
+
+        function createDot(status) {
+            const d = document.createElement('div');
+            d.className = 'dot';
+            if (status === 'G') { d.className = 'dot gol'; d.innerText = '✓'; }
+            if (status === 'F') { d.className = 'dot fallo'; d.innerText = '✕'; }
+            return d;
+        }
+
+        function changeState(newState) {
+            currentState = newState;
+            const centerMsg = document.getElementById('center-message');
+            const instrBar = document.getElementById('instructions-bar');
+
+            // Limpieza por defecto
+            instrBar.style.display = "block";
+
+            switch(currentState) {
+                case STATES.SETUP_PATEAR:
+                    centerMsg.innerText = "Tu turno de patear";
+                    centerMsg.style.borderColor = "#22c55e";
+                    instrBar.innerText = "Haz CLICK o presiona ESPACIO para iniciar la mira de apuntado";
+                    resetBallPosition();
+                    resetGoalkeeperPosition();
+                    break;
+                case STATES.MIRA_X:
+                    instrBar.innerText = "CLICK o ESPACIO para congelar dirección HORIZONTAL";
+                    break;
+                case STATES.MIRA_Y:
+                    instrBar.innerText = "CLICK o ESPACIO para congelar dirección VERTICAL";
+                    break;
+                case STATES.BARRA_POTENCIA:
+                    instrBar.innerText = "CLICK o ESPACIO en la zona verde. ¡Evita pasarte a la roja!";
+                    powerValue = 0;
+                    powerDir = 1;
+                    break;
+                case STATES.BALON_EN_VUELO:
+                    instrBar.style.display = "none";
+                    break;
+                case STATES.SETUP_ARQUERO:
+                    centerMsg.innerText = "¡DEFIENDE TU ARCO!";
+                    centerMsg.style.borderColor = "#ef4444";
+                    instrBar.innerText = "Mueve el MOUSE o arrastra el dedo para colocar tus guantes";
+                    resetBallPosition();
+                    resetGoalkeeperPosition();
+                    // Dar un delay corto e iniciar la IA
+                    setTimeout(() => {
+                        if (currentState === STATES.SETUP_ARQUERO) {
+                            triggerIaShotSetup();
+                        }
+                    }, 1200);
+                    break;
+                case STATES.IA_PREPARANDO:
+                    instrBar.style.display = "none";
+                    break;
+            }
+        }
+
+        function resetBallPosition() {
+            ball.x = 480;
+            ball.y = 450;
+            ball.z = 0;
+            ball.radius = 26;
+            ball.rotation = 0;
+            ball.active = false;
+        }
+
+        function resetGoalkeeperPosition() {
+            goalkeeper.x = 480;
+            goalkeeper.y = 280;
+            goalkeeper.targetX = 480;
+            goalkeeper.targetY = 280;
+            goalkeeper.state = 'IDLE';
+            goalkeeper.diveProgress = 0;
+            iaShotIndicator.visible = false;
+        }
+
+        // Lógica de disparo de la IA rival
+        function triggerIaShotSetup() {
+            changeState(STATES.IA_PREPARANDO);
+            
+            // Elegir coordenada aleatoria del arco para disparar
+            let shootX = GOAL.left + 30 + Math.random() * (GOAL.width - 60);
+            let shootY = GOAL.top + 20 + Math.random() * (GOAL.height - 40);
+
+            // Simular un tiro levemente desviado por probabilidad
+            if (Math.random() < 0.12) {
+                shootX = (Math.random() < 0.5) ? GOAL.left - 40 : GOAL.right + 40;
+            }
+
+            ball.startX = 480;
+            ball.startY = 440; // perspectiva del arquero, viene del fondo visual levemente invertido
+            ball.targetX = shootX;
+            ball.targetY = shootY;
+
+            // Lanzar advertencia visual rápida (Círculo rojo de anticipación)
+            setTimeout(() => {
+                if(currentState === STATES.IA_PREPARANDO) {
+                    iaShotIndicator.x = shootX;
+                    iaShotIndicator.y = shootY;
+                    iaShotIndicator.visible = true;
+                }
+            }, 400);
+
+            // Ejecutar disparo real tras 1 segundo
+            setTimeout(() => {
+                if(currentState === STATES.IA_PREPARANDO) {
+                    iaShotIndicator.visible = false;
+                    ball.active = true;
+                    changeState(STATES.BALON_EN_VUELO);
+                }
+            }, 1000);
+        }
+
+        // Entrada del jugador (Click o Barra Espaciadora unificada)
+        function handlePlayerAction() {
+            if (currentState === STATES.SETUP_PATEAR) {
+                // Iniciar movimiento horizontal de mira
+                targetCrosshair.x = crosshairRange.minX;
+                changeState(STATES.MIRA_X);
+            } else if (currentState === STATES.MIRA_X) {
+                // Congelar X, pasar a Y
+                targetCrosshair.y = crosshairRange.minY;
+                changeState(STATES.MIRA_Y);
+            } else if (currentState === STATES.MIRA_Y) {
+                // Congelar Y, pasar a potencia
+                changeState(STATES.BARRA_POTENCIA);
+            } else if (currentState === STATES.BARRA_POTENCIA) {
+                // Calcular disparo final
+                processUserShot();
+            }
+        }
+
+        function processUserShot() {
+            ball.startX = 480;
+            ball.startY = 460;
+            
+            let finalX = targetCrosshair.x;
+            let finalY = targetCrosshair.y;
+
+            // Penalización por mala potencia (Zona Roja alta)
+            if (powerValue > 0.82) {
+                let devFactor = (powerValue - 0.82) * 450;
+                finalY -= devFactor; // Se vuela por arriba del travesaño
+                finalX += (Math.random() * 2 - 1) * devFactor * 0.5;
+            } 
+            // Potencia ridículamente baja
+            else if (powerValue < 0.25) {
+                finalY = GOAL.bottom - 10; // Tiro débil arrastrado
+            }
+
+            ball.targetX = finalX;
+            ball.targetY = finalY;
+
+            // Decisión de estirada del arquero IA en paralelo
+            setupIaGoalkeeperDive(finalX, finalY);
+
+            ball.active = true;
+            changeState(STATES.BALON_EN_VUELO);
+        }
+
+        function setupIaGoalkeeperDive(userTargetX, userTargetY) {
+            goalkeeper.state = 'DIVING';
+            goalkeeper.diveProgress = 0;
+            goalkeeper.startX = goalkeeper.x;
+            goalkeeper.startY = goalkeeper.y;
+
+            // Probabilidad de adivinar el cuadrante (65% acierto de lado)
+            let guessRightSide = Math.random() < 0.65;
+            let targetX = 480;
+            let targetY = 260;
+
+            if (guessRightSide) {
+                // Se lanza al sector correcto con precisión imperfecta
+                targetX = userTargetX + (Math.random() * 60 - 30);
+                targetY = userTargetY + (Math.random() * 60 - 30);
+            } else {
+                // Se lanza al lado contrario por completo
+                let side = userTargetX > 480 ? -1 : 1;
+                targetX = 480 + side * (150 + Math.random() * 150);
+                targetY = GOAL.top + Math.random() * GOAL.height;
+            }
+
+            // Limitar rango físico del arquero
+            goalkeeper.targetDiveX = Math.max(GOAL.left - 20, Math.min(GOAL.right + 20, targetX));
+            goalkeeper.targetDiveY = Math.max(GOAL.top - 10, Math.min(GOAL.bottom, targetY));
+        }
+
+        // Registro y captura de eventos globales
+        window.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.code === 'Space') {
+                e.preventDefault();
+                handlePlayerAction();
+            }
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            if (currentState === STATES.SETUP_ARQUERO || currentState === STATES.IA_PREPARANDO || (currentState === STATES.BALON_EN_VUELO && !isUserTurnToKick)) {
+                // El control en modo arquero se delega al movimiento constante, cliquear no interrumpe
+                return;
+            }
+            handlePlayerAction();
+        });
+
+        // Seguimiento del puntero para el Arquero manual
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            // Escalar correctamente según tamaño real en pantalla del Canvas adaptativo
+            mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+            mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            // Restringir los movimientos del arquero a la vecindad lógica del arco
+            if (!isUserTurnToKick) {
+                goalkeeper.targetX = Math.max(GOAL.left - 40, Math.min(GOAL.right + 40, mouseX));
+                goalkeeper.targetY = Math.max(GOAL.top - 20, Math.min(GOAL.bottom + 20, mouseY));
+            }
+        });
+
+        // Soporte táctil móvil móvil
+        canvas.addEventListener('touchmove', (e) => {
+            if(e.touches.length > 0) {
+                const rect = canvas.getBoundingClientRect();
+                mouseX = (e.touches[0].clientX - rect.left) * (canvas.width / rect.width);
+                mouseY = (e.touches[0].clientY - rect.top) * (canvas.height / rect.height);
+                if (!isUserTurnToKick) {
+                    goalkeeper.targetX = Math.max(GOAL.left - 40, Math.min(GOAL.right + 40, mouseX));
+                    goalkeeper.targetY = Math.max(GOAL.top - 20, Math.min(GOAL.bottom + 20, mouseY));
+                }
+            }
+        }, {passive: true});
+
+
+        // BUCLE PRINCIPAL DE ACTUALIZACIÓN (FÍSICA Y ESTADOS)
+        function update() {
+            // 1. Animación básica de hinchadas oscilantes (Sinusoidal independiente)
+            let fanSpeedFactor = (currentState === STATES.CELEBRACION) ? 0.3 : 0.08;
+            spectators.forEach(f => {
+                f.offsetPhase += fanSpeedFactor;
+                f.y = f.baseY + Math.sin(f.offsetPhase) * 3;
+            });
+
+            // 2. Controladores de miras dinámicas
+            if (currentState === STATES.MIRA_X) {
+                targetCrosshair.x += crosshairSpeedX * crosshairDirX;
+                if (targetCrosshair.x > crosshairRange.maxX || targetCrosshair.x < crosshairRange.minX) {
+                    crosshairDirX *= -1;
+                }
+            } else if (currentState === STATES.MIRA_Y) {
+                targetCrosshair.y += crosshairSpeedY * crosshairDirY;
+                if (targetCrosshair.y > crosshairRange.maxY || targetCrosshair.y < crosshairRange.minY) {
+                    crosshairDirY *= -1;
+                }
+            } else if (currentState === STATES.BARRA_POTENCIA) {
+                powerValue += powerSpeed * powerDir;
+                if (powerValue > 1 || powerValue < 0) {
+                    powerDir *= -1;
+                }
+            }
+
+            // 3. Suavizado de posición del arquero controlado por el usuario (Modo defensa)
+            if (!isUserTurnToKick && (currentState === STATES.SETUP_ARQUERO || currentState === STATES.IA_PREPARANDO || currentState === STATES.BALON_EN_VUELO)) {
+                goalkeeper.x += (goalkeeper.targetX - goalkeeper.x) * 0.22;
+                goalkeeper.y += (goalkeeper.targetY - goalkeeper.y) * 0.22;
+            }
+
+            // 4. Interpolación de estirada del arquero IA (Modo pateador)
+            if (isUserTurnToKick && currentState === STATES.BALON_EN_VUELO && goalkeeper.state === 'DIVING') {
+                if (goalkeeper.diveProgress < 1) {
+                    goalkeeper.diveProgress += 0.05; // velocidad de la estirada
+                    // Usar easing out para que sea explosivo al inicio
+                    let ease = 1 - Math.pow(1 - goalkeeper.diveProgress, 3);
+                    goalkeeper.x = goalkeeper.startX + (goalkeeper.targetDiveX - goalkeeper.startX) * ease;
+                    goalkeeper.y = goalkeeper.startY + (goalkeeper.targetDiveY - goalkeeper.startY) * ease;
+                }
+            }
+
+            // 5. Simulación balística del balón en vuelo
+            if (currentState === STATES.BALON_EN_VUELO && ball.active) {
+                ball.z += ball.speedZ;
+                ball.rotation += 0.15;
+
+                // Interpolación lineal del plano X/Y basada en la profundidad Z
+                ball.x = ball.startX + (ball.targetX - ball.startX) * ball.z;
+                
+                // Añadir arco parabólico simulando gravedad/altura
+                let baseHeight = ball.startY + (ball.targetY - ball.startY) * ball.z;
+                let parabola = Math.sin(ball.z * Math.PI) * ball.arcHeight;
+                ball.y = baseHeight - parabola;
+
+                // Reducción proporcional del tamaño según distancia relativa
+                ball.radius = 26 * (1 - ball.z * 0.45);
+
+                // Comprobar llegada inminente a la línea de gol (Z >= 1)
+                if (ball.z >= 1) {
+                    ball.z = 1;
+                    ball.active = false;
+                    evaluateShotOutcome();
+                }
+            }
+        }
+
+        // EVALUACIÓN DE COLISIONES Y RESULTADO DEL PENAL
+        function evaluateShotOutcome() {
+            let isInsideGoal = (ball.x >= GOAL.left && ball.x <= GOAL.right && ball.y >= GOAL.top && ball.y <= GOAL.bottom);
+            let hitPost = false;
+            let savedByKeeper = false;
+
+            // Comprobar colisión directa con postes o travesaño (Márgenes periféricos externos)
+            let distToLeftPost = Math.abs(ball.x - GOAL.left);
+            let distToRightPost = Math.abs(ball.x - GOAL.right);
+            let distToTopPost = Math.abs(ball.y - GOAL.top);
+
+            if (isInsideGoal) {
+                // Rebote interno en el poste
+                if (distToLeftPost < GOAL.postWidth || distToRightPost < GOAL.postWidth || distToTopPost < GOAL.postWidth) {
+                    hitPost = true;
+                }
+            } else {
+                // Roce externo
+                if ((distToLeftPost < GOAL.postWidth * 1.5 && ball.y > GOAL.top && ball.y < GOAL.bottom) ||
+                    (distToRightPost < GOAL.postWidth * 1.5 && ball.y > GOAL.top && ball.y < GOAL.bottom) ||
+                    (Math.abs(ball.y - GOAL.top) < GOAL.postWidth * 1.5 && ball.x > GOAL.left && ball.x < GOAL.right)) {
+                    hitPost = true;
+                }
+            }
+
+            // Comprobar intersección con el radio de acción del portero
+            // El arquero se compone de su tronco y la extensión de sus extremidades
+            let keeperRadius = 75; 
+            let distToKeeper = Math.hypot(ball.x - goalkeeper.x, ball.y - (goalkeeper.y - 20));
+
+            if (distToKeeper < keeperRadius) {
+                savedByKeeper = true;
+            }
+
+            // Determinar etiqueta final del disparo
+            let result = 'FALLO'; // Fuera, poste o atajado
+
+            if (savedByKeeper) {
+                result = 'ATAJADO';
+                // Animación de rebote corto del balón al ser atajado
+                ball.targetX += (Math.random() * 80 - 40);
+                ball.targetY += 60;
+                ball.z = 0.95; 
+            } else if (hitPost) {
+                result = 'POSTE';
+                ball.targetX += (ball.x < 480 ? -50 : 50);
+                ball.targetY += 40;
+                ball.z = 0.95;
+            } else if (isInsideGoal) {
+                result = 'GOL';
+            }
+
+            triggerCelebrationBanner(result);
+        }
+
+        function triggerCelebrationBanner(result) {
+            changeState(STATES.CELEBRACION);
+            const banner = document.getElementById('banner-announcement');
+            
+            // Asignación de estado en el historial de la tanda
+            let currentKickerTeam = isUserTurnToKick ? userTeam : rivalTeam;
+            let isGoal = (result === 'GOL');
+            
+            // Buscar primera casilla disponible en la tanda actual o empujar si es muerte súbita
+            let track = scoreTrack[currentKickerTeam];
+            let slotIndex = track.findIndex(e => e === 'E');
+            if (slotIndex !== -1) {
+                track[slotIndex] = isGoal ? 'G' : 'F';
+            } else {
+                track.push(isGoal ? 'G' : 'F');
+            }
+
+            buildTandaUI();
+
+            // Mensajes estéticos dinámicos
+            if (result === 'GOL') {
+                banner.innerText = "¡GOL!";
+                banner.style.color = "#22c55e";
+            } else if (result === 'ATAJADO') {
+                banner.innerText = "¡ATAJADA!";
+                banner.style.color = "#3b82f6";
+            } else {
+                banner.innerText = "¡AFUERA!";
+                banner.style.color = "#ef4444";
+            }
+
+            banner.classList.add('show');
+
+            // Retardo de 2.5 segundos para festejar antes del siguiente turno o fin de partido
+            setTimeout(() => {
+                banner.classList.remove('show');
+                checkMatchStatusRule();
+            }, 2500);
+        }
+
+        // LÓGICA DE REGLAMENTO Y CAMBIO DE TURNO
+        function checkMatchStatusRule() {
+            let trackUser = scoreTrack[userTeam];
+            let trackRival = scoreTrack[rivalTeam];
+
+            let userGols = trackUser.filter(x => x === 'G').length;
+            let rivalGols = trackRival.filter(x => x === 'G').length;
+
+            let userShotsTaken = trackUser.filter(x => x !== 'E').length;
+            let rivalShotsTaken = trackRival.filter(x => x !== 'E').length;
+
+            let userRemaining = Math.max(0, 5 - userShotsTaken);
+            let rivalRemaining = Math.max(0, 5 - rivalShotsTaken);
+
+            // Verificación de ventaja matemática irreversible antes de llegar a los 5 tiros
+            if (userGols > rivalGols + rivalRemaining) {
+                endGame(userTeam);
+                return;
+            }
+            if (rivalGols > userGols + userRemaining) {
+                endGame(rivalTeam);
+                return;
+            }
+
+            // Si ambos ya completaron los 5 tiros reglamentarios
+            if (userShotsTaken >= 5 && rivalShotsTaken >= 5 && userShotsTaken === rivalShotsTaken) {
+                if (userGols === rivalGols) {
+                    // Continuar en modo muerte súbita (se añade espacio para un tiro extra en la UI de forma automática)
+                    // No hacemos nada, el flujo avanza por tiro individual
+                } else {
+                    let winner = userGols > rivalGols ? userTeam : rivalTeam;
+                    endGame(winner);
+                    return;
+                }
+            }
+
+            // Alternar posesión y rol del bucle
+            if (isUserTurnToKick) {
+                isUserTurnToKick = false;
+                changeState(STATES.SETUP_ARQUERO);
+            } else {
+                isUserTurnToKick = true;
+                currentRound++;
+                changeState(STATES.SETUP_PATEAR);
+            }
+        }
+
+        function endGame(winner) {
+            currentState = STATES.GAMEOVER;
+            document.getElementById('hud-overlay').classList.add('hidden');
+            document.getElementById('center-message').classList.add('hidden');
+            document.getElementById('instructions-bar').classList.add('hidden');
+            
+            const screen = document.getElementById('gameover-screen');
+            const title = document.getElementById('winner-title');
+            const subtitle = document.getElementById('winner-subtitle');
+
+            screen.style.background = TEAM_COLORS[winner].secondary === '#ffffff' ? 'rgba(0, 26, 78, 0.98)' : 'rgba(128, 0, 32, 0.98)';
+            
+            if (winner === userTeam) {
+                title.innerText = "¡CAMPEÓN!";
+                subtitle.innerText = `Ganaste el Clásico dirigiendo a ${TEAM_COLORS[userTeam].label}`;
+                title.style.color = "#22c55e";
+            } else {
+                title.innerText = "FIN DEL JUEGO";
+                subtitle.innerText = `${TEAM_COLORS[rivalTeam].label} se lleva la victoria en tu cancha`;
+                title.style.color = "#ef4444";
+            }
+
+            screen.classList.remove('hidden');
+        }
+
+        function resetGame() {
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+            currentState = STATES.MENU;
+        }
+
+
+        // RENDERIZADOR GRÁFICO (CANVAS DRAW)
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Dibujar el cielo y gradiente atmosférico superior
+            let skyGrad = ctx.createLinearGradient(0, 0, 0, 180);
+            skyGrad.addColorStop(0, '#0c1017');
+            skyGrad.addColorStop(1, '#1e293b');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, canvas.width, 180);
+
+            // 2. Renderizar Hinchada Dinámica (Partículas de espectadores)
+            spectators.forEach(f => {
+                // Determinar colores basados en la tribuna local o visitante
+                if (f.teamSide === 'LEFT') {
+                    ctx.fillStyle = (Math.floor(f.x + f.y) % 2 === 0) ? '#FFFDD0' : '#800020'; // Colores de la U
+                } else {
+                    ctx.fillStyle = (Math.floor(f.x + f.y) % 2 === 0) ? '#001A4E' : '#ffffff'; // Colores de Alianza
+                }
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Visera o estructura del estadio superior
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+            ctx.fillRect(0, 130, canvas.width, 10);
+
+            // 3. Dibujar Campo de Césped con líneas de corte alternadas (Efecto profundidad)
+            let fieldTop = 140;
+            ctx.fillStyle = '#15803d';
+            ctx.fillRect(0, fieldTop, canvas.width, canvas.height - fieldTop);
+
+            for (let i = 0; i < 8; i++) {
+                ctx.fillStyle = (i % 2 === 0) ? '#166534' : '#15803d';
+                let y1 = fieldTop + (i * 50);
+                let h = 50;
+                ctx.fillRect(0, y1, canvas.width, h);
+            }
+
+            // Línea blanca de fondo de la cancha
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, GOAL.bottom);
+            ctx.lineTo(canvas.width, GOAL.bottom);
+            ctx.stroke();
+
+            // Punto de Penal
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.beginPath();
+            ctx.arc(480, 460, 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 4. Dibujar la RED del arco (Líneas cruzadas estéticas en el fondo)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 1.5;
+            // Líneas verticales de la red
+            for (let x = GOAL.left + 10; x < GOAL.right; x += 14) {
+                ctx.beginPath();
+                ctx.moveTo(x, GOAL.top);
+                ctx.lineTo(x, GOAL.bottom);
+                ctx.stroke();
+            }
+            // Líneas horizontales de la red
+            for (let y = GOAL.top + 10; y < GOAL.bottom; y += 14) {
+                ctx.beginPath();
+                ctx.moveTo(GOAL.left, y);
+                ctx.lineTo(GOAL.right, y);
+                ctx.stroke();
+            }
+
+            // 5. Dibujar los Postes Físicos y Travesaño del Arco
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = GOAL.postWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // Sombra proyectada del arco en el césped para realismo
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.lineWidth = GOAL.postWidth;
+            ctx.beginPath();
+            ctx.moveTo(GOAL.left + 8, GOAL.bottom + 5);
+            ctx.lineTo(GOAL.left + 8, GOAL.top + 5);
+            ctx.lineTo(GOAL.right + 8, GOAL.top + 5);
+            ctx.lineTo(GOAL.right + 8, GOAL.bottom + 5);
+            ctx.stroke();
+
+            // Arco real superior blanco
+            ctx.strokeStyle = '#f8fafc';
+            ctx.beginPath();
+            ctx.moveTo(GOAL.left, GOAL.bottom);
+            ctx.lineTo(GOAL.left, GOAL.top);
+            ctx.lineTo(GOAL.right, GOAL.top);
+            ctx.lineTo(GOAL.right, GOAL.bottom);
+            ctx.stroke();
+
+            // Base de los postes
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(GOAL.left - GOAL.postWidth/2, GOAL.bottom - 4, GOAL.postWidth, 6);
+            ctx.fillRect(GOAL.right - GOAL.postWidth/2, GOAL.bottom - 4, GOAL.postWidth, 6);
+
+            // 6. RENDERIZAR ARQUERO (Se adapta según el rol y equipo correspondiente)
+            let currentKeeperColor = isUserTurnToKick ? TEAM_COLORS[rivalTeam] : TEAM_COLORS[userTeam];
+            
+            ctx.save();
+            // Dibujar cuerpo estilizado del arquero (Caja y guantes)
+            ctx.fillStyle = currentKeeperColor.secondary;
+            ctx.strokeStyle = currentKeeperColor.primary;
+            ctx.lineWidth = 4;
+
+            // Cabeza del arquero
+            ctx.beginPath();
+            ctx.arc(goalkeeper.x, goalkeeper.y - 45, 16, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Cuerpo/Camiseta
+            ctx.fillStyle = currentKeeperColor.primary;
+            ctx.fillRect(goalkeeper.x - 22, goalkeeper.y - 28, 44, 55);
+            ctx.strokeRect(goalkeeper.x - 22, goalkeeper.y - 28, 44, 55);
+
+            // Extremidades básicas (Brazos estirados según estado)
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 8;
+            
+            // Posicionar guantes dinámicos
+            let gxLeft, gxRight, gyLeft, gyRight;
+            if (goalkeeper.state === 'DIVING') {
+                // Al volar, los brazos se alinean hacia el objetivo del salto
+                gxLeft = goalkeeper.x - 35;
+                gxRight = goalkeeper.x + 35;
+                gyLeft = goalkeeper.y - 20;
+                gyRight = goalkeeper.y - 20;
+            } else {
+                // Posición de espera atenta
+                gxLeft = goalkeeper.x - 45;
+                gxRight = goalkeeper.x + 45;
+                gyLeft = goalkeeper.y - 15;
+                gyRight = goalkeeper.y - 15;
+            }
+
+            // Dibujar Guantes/Manos
+            ctx.fillStyle = '#f97316'; // Guantes naranjas de arquero profesional
+            ctx.beginPath();
+            ctx.arc(gxLeft, gyLeft, 11, 0, Math.PI * 2);
+            ctx.arc(gxRight, gyRight, 11, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // 7. RENDERIZAR ADVERTENCIA DE TIRO IA (Círculo parpadeante de reflejo)
+            if (!isUserTurnToKick && iaShotIndicator.visible) {
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(iaShotIndicator.x, iaShotIndicator.y, 25, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
+                ctx.fill();
+            }
+
+            // 8. INTERFAZ DE CONTROL DEL PATEADOR (Miras y Potencia en pantalla)
+            if (isUserTurnToKick && (currentState === STATES.MIRA_X || currentState === STATES.MIRA_Y || currentState === STATES.BARRA_POTENCIA)) {
+                // Dibujar líneas guía de retícula
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+                ctx.lineWidth = 1.5;
+                
+                ctx.beginPath();
+                ctx.moveTo(targetCrosshair.x, GOAL.top - 20);
+                ctx.lineTo(targetCrosshair.x, GOAL.bottom + 20);
+                ctx.moveTo(GOAL.left - 20, targetCrosshair.y);
+                ctx.lineTo(GOAL.right + 20, targetCrosshair.y);
+                ctx.stroke();
+
+                // Círculo principal de la mira
+                ctx.strokeStyle = currentState === STATES.BARRA_POTENCIA ? '#22c55e' : '#3b82f6';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(targetCrosshair.x, targetCrosshair.y, 18, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Punto central
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(targetCrosshair.x, targetCrosshair.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Renderizar la Barra de Potencia Vertical en el lateral derecho si corresponde
+            if (isUserTurnToKick && currentState === STATES.BARRA_POTENCIA) {
+                let bx = 850;
+                let by = 200;
+                let bw = 25;
+                let bh = 200;
+
+                // Fondo del contenedor de barra
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(bx, by, bw, bh);
+
+                // Dibujar gradiente indicador de zonas (Verde = Óptimo, Rojo = Exceso)
+                let fillHeight = bh * powerValue;
+                let barGrad = ctx.createLinearGradient(bx, by + bh, bx, by);
+                barGrad.addColorStop(0, '#22c55e'); // Verde abajo
+                barGrad.addColorStop(0.7, '#eab308'); // Amarillo medio
+                barGrad.addColorStop(0.85, '#ef4444'); // Rojo peligro arriba
+                
+                ctx.fillStyle = barGrad;
+                ctx.fillRect(bx, by + bh - fillHeight, bw, fillHeight);
+
+                // Bordes exteriores
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(bx, by, bw, bh);
+
+                // Etiqueta de texto indicador
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillText("FUERZA", bx - 10, by - 10);
+            }
+
+            // 9. RENDERIZAR EL BALÓN DE FÚTBOL
+            if (currentState !== STATES.MENU && currentState !== STATES.GAMEOVER) {
+                ctx.save();
+                
+                // Sombra difuminada del balón en el suelo por perspectiva
+                let shadowRadius = ball.radius * (1 - ball.z * 0.3);
+                let shadowY = 460 + (GOAL.bottom - 20 - 460) * ball.z; // Proyección lineal en el eje vertical
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+                ctx.beginPath();
+                ctx.ellipse(ball.x, ball.y + (ball.radius * 1.2 * (1 - ball.z * 0.5)), shadowRadius, shadowRadius * 0.3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // El Balón físico real
+                ctx.translate(ball.x, ball.y);
+                ctx.rotate(ball.rotation);
+
+                // Cuerpo esférico base blanco
+                ctx.fillStyle = '#f8fafc';
+                ctx.beginPath();
+                ctx.arc(0, 0, ball.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Dibujar gajos/patrón geométrico de balón clásico (Líneas y centro)
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = ball.radius * 0.08;
+                
+                ctx.beginPath();
+                // Pentágono o detalle central simulado
+                for (let i = 0; i < 5; i++) {
+                    let angle = (i * Math.PI * 2) / 5;
+                    let px = Math.cos(angle) * (ball.radius * 0.4);
+                    let py = Math.sin(angle) * (ball.radius * 0.4);
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+
+                    // Líneas radiales hacia los bordes
+                    ctx.moveTo(px, py);
+                    ctx.lineTo(Math.cos(angle) * ball.radius, Math.sin(angle) * ball.radius);
+                }
+                ctx.closePath();
+                ctx.stroke();
+
+                // Brillo de volumen esférico
+                let ballLightGrad = ctx.createRadialGradient(-ball.radius*0.3, -ball.radius*0.3, ball.radius*0.1, 0, 0, ball.radius);
+                ballLightGrad.addColorStop(0, 'rgba(255,255,255,0.4)');
+                ballLightGrad.addColorStop(0.8, 'rgba(0,0,0,0)');
+                ballLightGrad.addColorStop(1, 'rgba(0,0,0,0.4)');
+                ctx.fillStyle = ballLightGrad;
+                ctx.beginPath();
+                ctx.arc(0, 0, ball.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // BUCLE INFINITO DE EJECUCIÓN SÍNCRONA (GAME LOOP)
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Iniciar ejecución en segundo plano inmediatamente
+        gameLoop();
+    </script>
+</body>
+</html>
