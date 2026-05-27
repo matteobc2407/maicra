@@ -292,6 +292,11 @@
                     <div class="name">ALIANZA RISA</div>
                 </div>
             </div>
+            <div style="margin-top:18px; text-align:center;">
+                <label for="faceUpload" style="font-size:1rem;color:#94a3b8;">Sube tu foto (cara):</label>
+                <input type="file" id="faceUpload" accept="image/*" style="margin-left:10px;">
+                <img id="facePreview" alt="Previsualización" style="width:56px;height:56px;border-radius:50%;object-fit:cover;margin-left:12px;vertical-align:middle;display:none;border:2px solid rgba(255,255,255,0.12)">
+            </div>
         </div>
 
         <!-- Pantalla Final -->
@@ -308,6 +313,61 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        // Imagen de cara personalizada del usuario (si se sube)
+        let userFaceImage = null;
+        const userFaceCanvas = document.createElement('canvas');
+        const DEFAULT_FACE_FILES = ['face.png', 'face.jpg', 'face.jpeg'];
+
+        function processFaceImage(img, showPreview = false) {
+            const SIZE = 128;
+            userFaceCanvas.width = SIZE;
+            userFaceCanvas.height = SIZE;
+            const uctx = userFaceCanvas.getContext('2d');
+            uctx.clearRect(0, 0, SIZE, SIZE);
+            uctx.save();
+            uctx.beginPath();
+            uctx.arc(SIZE/2, SIZE/2, SIZE/2, 0, Math.PI * 2);
+            uctx.closePath();
+            uctx.clip();
+
+            const scale = Math.max(SIZE / img.width, SIZE / img.height);
+            const sw = SIZE / scale;
+            const sh = SIZE / scale;
+            const sx = (img.width - sw) / 2;
+            const sy = (img.height - sh) / 2;
+            uctx.drawImage(img, sx, sy, sw, sh, 0, 0, SIZE, SIZE);
+            uctx.restore();
+
+            userFaceImage = new Image();
+            userFaceImage.src = userFaceCanvas.toDataURL('image/png');
+            if (showPreview) {
+                const facePreview = document.getElementById('facePreview');
+                if (facePreview) {
+                    facePreview.src = userFaceImage.src;
+                    facePreview.style.display = 'inline-block';
+                }
+            }
+        }
+
+        function tryLoadDefaultFace() {
+            DEFAULT_FACE_FILES.forEach((fileName) => {
+                fetch(fileName, { mode: 'no-cors' })
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        const img = new Image();
+                        img.onload = () => {
+                            if (!userFaceImage) {
+                                processFaceImage(img, false);
+                            }
+                            URL.revokeObjectURL(url);
+                        };
+                        img.onerror = () => { URL.revokeObjectURL(url); };
+                        img.src = url;
+                    })
+                    .catch(() => {});
+            });
+        }
 
         // Estados del Juego
         const STATES = {
@@ -1053,11 +1113,29 @@
             ctx.strokeStyle = currentKeeperColor.primary;
             ctx.lineWidth = 4;
 
-            // Cabeza del arquero
-            ctx.beginPath();
-            ctx.arc(goalkeeper.x, goalkeeper.y - 45, 16, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
+            // Cabeza del arquero (con posibilidad de imagen personalizada)
+            if (userFaceImage && userFaceImage.complete) {
+                const faceW = 48;
+                const faceH = 48;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(goalkeeper.x, goalkeeper.y - 45, faceW / 2, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.clip();
+                ctx.drawImage(userFaceImage, goalkeeper.x - faceW / 2, goalkeeper.y - 45 - faceH / 2, faceW, faceH);
+                ctx.restore();
+                // Borde circular alrededor de la cabeza
+                ctx.strokeStyle = currentKeeperColor.primary;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(goalkeeper.x, goalkeeper.y - 45, faceW / 2, 0, Math.PI * 2);
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.arc(goalkeeper.x, goalkeeper.y - 45, 16, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
 
             // Cuerpo/Camiseta
             ctx.fillStyle = currentKeeperColor.primary;
@@ -1228,6 +1306,33 @@
         }
 
         // Iniciar ejecución en segundo plano inmediatamente
+        // Setup: manejo de subida de foto para la cara del arquero
+        (function setupFaceUpload() {
+            const faceInput = document.getElementById('faceUpload');
+            const facePreview = document.getElementById('facePreview');
+            if (!faceInput) return;
+
+            faceInput.addEventListener('change', (e) => {
+                const f = e.target.files && e.target.files[0];
+                if (!f) return;
+                handleFaceFile(f);
+            });
+
+            function handleFaceFile(file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        processFaceImage(img, true);
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            tryLoadDefaultFace();
+        })();
+
         gameLoop();
     </script>
 </body>
